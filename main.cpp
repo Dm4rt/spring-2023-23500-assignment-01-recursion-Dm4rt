@@ -3,9 +3,6 @@
 #include <cstdlib>
 #include <unistd.h>
 
-
-std::string pastBoards[100][16];
-int curSize=0;
 void generate(std::string board[]){
   for(int x=0;x<16;x++){
     board[x]="";
@@ -65,11 +62,16 @@ void generate(std::string board[]){
     generate(board);
   }
 }
-
+void printValues(std::string board[]){
+	for(int x=0;x<16;x++){
+		std::cout<<board[x]<<" ";
+	}
+	std::cout<<std::endl;
+}
 void printBoard(std::string board[]){
 
   printf("\033[2J\033[1;1H");
- 
+  std::cout<<"--------"<<std::endl;
   for(int x=0;x<16;x++){
     if(board[x]=="16"){
       std::cout<<"_"<<" ";
@@ -85,37 +87,47 @@ void printBoard(std::string board[]){
       std::cout<<"\n";
     }
   }
-  std::cout<<"\n";
+  std::cout<<"--------"<<std::endl;
+  std::cout<<"\n\n";
 }
 
-bool checkUnique(std::string board[],int row,int col, int curRow,int curCol){
-    	board[(curRow*4)+(curCol)]=board[(row*4)+(col)];
-    	board[(row*4)+(col)]="16";
-    	
-    	int count=0;
-    	for(int x=0;x<curSize;x++){
-	    	for(int y=0;y<16;y++){
-	    		if(pastBoards[x][y]==board[y]){
-	    			count++;
-	    		}
-	    	}
-    	}
-    	if(count==16){
-    		return false;
-    	}
-    	board[(row*4)+(col)]=board[(curRow*4)+(curCol)];
-    	board[(curRow*4)+(curCol)]="16";
-    	
-    	for(int x=0;x<16;x++){
-    		pastBoards[curSize][x].assign(board[x]);
-    	}
-    	curSize++;
-    	if(curSize>99){
-    		curSize=0;
-    	}
+std::string pastBoards[100][16];
+int curSize=0;
+
+void addPast(std::string board[]){
+	for(int x=0;x<16;x++){
+		pastBoards[curSize][x]=board[x];
+	}
+	curSize++;
+	if(curSize>99){
+		curSize=0;
+	}
+}
+
+bool sameBoard(std::string boardA[], std::string boardB[]){
+	for(int x=0;x<16;x++){
+		//std::cout<<boardA[x]<<" "<<boardB[x]<<std::endl;
+		if(boardA[x]!=boardB[x]){
+			return false;
+		}
+	}
 	return true;
 }
-
+bool checkUnique(std::string board[],int curRow,int curCol,int row,int col){
+	std::string testBoard[16];
+	for(int x=0;x<16;x++){
+		testBoard[x]=board[x];
+	}
+	testBoard[(curRow*4)+(curCol)]=testBoard[(row*4)+(col)];
+    	testBoard[(row*4)+(col)]="16";
+	for(int x=0;x<curSize;x++){
+		//std::cout<<sameBoard(pastBoards[x],testBoard)<<std::endl;
+		if(sameBoard(pastBoards[x],testBoard)){
+			return false;
+		}
+	}
+	return true;
+}
 
 bool isSolved(std::string board[]){
   for(int x=0;x<15;x++){
@@ -126,50 +138,42 @@ bool isSolved(std::string board[]){
   return true;
 }
 
-//dir is so that  we ddont go in loop back and forth
-//in other words 1 2 3 4 is up right down left with 0 being no move
-void solve(std::string board[],int row, int col){
+int bestMove(std::string board[],int curRow,int curCol){
+	int curIndex=(curRow*4)+curCol;
+	
+}
+
+void solve(std::string board[],int curRow, int curCol,int row, int col){
   //BASE CASE: if board is in order
   if(isSolved(board)){
+  	printValues(board);
     exit(0);
   }
-  
-  int curRow;
-    int curCol;
-    for(int x=0;x<16;x++){
-      if(board[x]=="16"){
-	curRow=(x/4);
-	curCol=(x%4);
-      }
-    }
-  //||checkUnique(board,row,col,curRow,curCol)==false
-  if(row>3||row<0||col>3||col<0){
+  if(row>3||row<0||col>3||col<0||checkUnique(board,curRow,curCol,row,col)==false){
     return;
   }
-  else{
+  
     board[(curRow*4)+(curCol)]=board[(row*4)+(col)];
     board[(row*4)+(col)]="16";
-   
-  }
+    addPast(board);
 
   usleep(80000);
   printBoard(board);
-  solve(board,row-1,col);	
-  solve(board,row,col+1);
-  solve(board,row+1,col);
-  solve(board,row,col-1);
+  solve(board,row,col,row-1,col);	
+  solve(board,row,col,row,col+1);
+  solve(board,row,col,row+1,col);
+  solve(board,row,col,row,col-1);
 }
 
 void solve(std::string board[]){
 
   //Get inital blank space
-  int row;
-  int col;
+  int curRow;
+  int curCol;
   for(int x=0;x<16;x++){
     if(board[x]=="16"){
-      row=(x/4);
-      col=(x%4);
-      std::cout<<x<<" "<<row<<" "<<col<<std::endl;
+      curRow=(x/4);
+      curCol=(x%4);
       break;
     }
   }
@@ -178,11 +182,11 @@ void solve(std::string board[]){
   if(isSolved(board)){
     exit(0);
   }
-  for(int x=0;x<16;x++){
-  	pastBoards[0][x].assign(board[x]);
-  }
-  curSize++;
-  solve(board,row,col);
+  addPast(board);
+  solve(board,curRow,curCol,curRow-1,curCol);
+  solve(board,curRow,curCol,curRow,curCol+1);	
+  solve(board,curRow,curCol,curRow+1,curCol);	
+  solve(board,curRow,curCol,curRow,curCol-1);		
  
 }
 
